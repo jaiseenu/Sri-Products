@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #1f2160;
+      --navy-dark: #14153f;
+      --gold: #c9a227;
+      --gold-light: #e6cf7a;
+      --cream: #f7f5ef;
+      --paper: #ffffff;
+      --ink: #23232b;
+      --ink-soft: #6a6a76;
+      --line: #e7e4da;
+      --danger: #b3261e;
+      --danger-bg: #fbe9e7;
+      --ok: #2e7d32;
+      --ok-bg: #e9f3ea;
+      --radius: 14px;
+      --shadow: 0 1px 2px rgba(31,33,96,0.08), 0 4px 14px rgba(31,33,96,0.06);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; background: var(--cream); color: var(--ink);
+      font-family: 'Inter', -apple-system, sans-serif; font-size: 15px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h1, h2, h3, .display { font-family: 'Manrope', sans-serif; }
+    #app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 84px; position: relative; }
+
+    header.top {
+      background: var(--navy); color: #fff; padding: 18px 18px 22px;
+      border-bottom: 3px solid var(--gold);
+    }
+    header.top .brand { display: flex; align-items: center; gap: 10px; }
+    header.top .brand-mark {
+      width: 34px; height: 34px; border-radius: 9px; background: var(--gold);
+      color: var(--navy); font-family: 'Manrope'; font-weight: 800; font-size: 15px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    header.top .brand-name { font-family: 'Manrope'; font-weight: 800; font-size: 19px; letter-spacing: 0.2px; }
+    header.top .tagline { font-size: 11.5px; color: var(--gold-light); margin-top: 1px; }
+
+    main { padding: 16px; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .card {
+      background: var(--paper); border-radius: var(--radius); padding: 16px;
+      box-shadow: var(--shadow); margin-bottom: 12px;
+    }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { background: var(--paper); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+    .stat .label { font-size: 12px; color: var(--ink-soft); }
+    .stat .value { font-family: 'Manrope'; font-weight: 800; font-size: 21px; margin-top: 3px; color: var(--navy); }
+    .stat.warn .value { color: var(--danger); }
+
+    h3.section-title { font-size: 13px; text-transform: none; color: var(--ink-soft); margin: 18px 2px 8px; font-weight: 600; }
+
+    .row-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+    .row-item:last-child { border-bottom: none; }
+    .row-item .name { font-weight: 600; }
+    .row-item .sub { font-size: 12.5px; color: var(--ink-soft); }
+    .row-item .right { text-align: right; }
+
+    button, .btn {
+      font-family: 'Inter'; font-weight: 600; font-size: 15px; border: none; border-radius: 12px;
+      padding: 13px 18px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; -webkit-appearance: none;
+    }
+    .btn-primary { background: var(--navy); color: #fff; width: 100%; }
+    .btn-primary:active { background: var(--navy-dark); }
+    .btn-gold { background: var(--gold); color: var(--navy-dark); width: 100%; }
+    .btn-outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); width: 100%; }
+    .btn-sm { padding: 8px 12px; font-size: 13px; border-radius: 9px; width: auto; }
+    button:disabled { opacity: 0.5; }
+
+    label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin: 12px 0 5px; }
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      width: 100%; padding: 12px 12px; border-radius: 10px; border: 1.5px solid var(--line);
+      font-size: 15px; font-family: 'Inter'; background: #fff; color: var(--ink);
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy); }
+
+    .toggle-row { display: flex; gap: 8px; margin-top: 6px; }
+    .toggle-opt {
+      flex: 1; text-align: center; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line);
+      font-weight: 600; font-size: 13.5px; color: var(--ink-soft); cursor: pointer;
+    }
+    .toggle-opt.selected { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    .autocomplete { position: relative; }
+    .ac-list { position: absolute; z-index: 10; top: 100%; left: 0; right: 0; background: #fff;
+      border: 1.5px solid var(--line); border-top: none; border-radius: 0 0 10px 10px; max-height: 220px;
+      overflow-y: auto; box-shadow: var(--shadow); }
+    .ac-item { padding: 11px 12px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item.create { color: var(--navy); font-weight: 700; }
+
+    .sale-line { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fdfcf9; }
+    .sale-line .line-head { display: flex; justify-content: space-between; align-items: center; }
+    .sale-line .remove { color: var(--danger); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .sale-line .price-preview { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+    .sale-line .price-preview.neg { color: var(--danger); }
+    .bottle-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; }
+
+    .total-bar { display: flex; justify-content: space-between; font-family: 'Manrope'; font-weight: 800;
+      font-size: 17px; padding: 10px 2px; border-top: 2px solid var(--navy); margin-top: 4px; }
+
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+    .badge.ok { background: var(--ok-bg); color: var(--ok); }
+    .badge.due { background: var(--danger-bg); color: var(--danger); }
+
+    nav.bottom {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px;
+      background: #fff; border-top: 1px solid var(--line); display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    nav.bottom .tab {
+      flex: 1; text-align: center; padding: 10px 0 8px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft);
+      cursor: pointer;
+    }
+    nav.bottom .tab .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    nav.bottom .tab.active { color: var(--navy); }
+
+    .fab {
+      position: fixed; bottom: 78px; left: 50%; transform: translateX(calc(-50% + 190px));
+      background: var(--gold); color: var(--navy-dark); width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700;
+      box-shadow: 0 4px 12px rgba(201,162,39,0.5); cursor: pointer; border: none;
+    }
+
+    .empty { text-align: center; padding: 30px 10px; color: var(--ink-soft); font-size: 14px; }
+    .backlink { color: var(--navy); font-weight: 600; font-size: 14px; cursor: pointer; display: inline-block; margin-bottom: 10px; }
+    .toast {
+      position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff;
+      padding: 12px 18px; border-radius: 10px; font-size: 14px; z-index: 50; box-shadow: var(--shadow);
+      max-width: 90%; text-align: center;
+    }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-mark">SP</div>
+        <div>
+          <div class="brand-name">SRI Products</div>
+          <div class="tagline">Quality Never Compromised</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- DASHBOARD -->
+      <section class="view active" id="view-dashboard">
+        <h3 class="section-title">Today</h3>
+        <div class="stat-grid">
+          <div class="stat"><div class="label">Today's Sales</div><div class="value" id="d-today-sales">—</div></div>
+          <div class="stat"><div class="label">Today's Payments</div><div class="value" id="d-today-payments">—</div></div>
+          <div class="stat"><div class="label">This Month</div><div class="value" id="d-month-sales">—</div></div>
+          <div class="stat warn"><div class="label">Outstanding</div><div class="value" id="d-outstanding">—</div></div>
+        </div>
+
+        <h3 class="section-title">Current Stock</h3>
+        <div class="card" id="d-stock"><div class="empty">Loading…</div></div>
+
+        <h3 class="section-title">Recent Sales</h3>
+        <div class="card" id="d-recent"><div class="empty">Loading…</div></div>
+      </section>
+
+      <!-- CUSTOMERS -->
+      <section class="view" id="view-customers">
+        <input type="text" id="cust-search" placeholder="Search customers…">
+        <div class="card" style="margin-top:12px;" id="cust-list"><div class="empty">Start typing to search</div></div>
+      </section>
+
+      <!-- CUSTOMER DETAIL -->
+      <section class="view" id="view-customer-detail">
+        <span class="backlink" onclick="showView('view-customers')">‹ Customers</span>
+        <div class="card" id="cd-summary"></div>
+        <h3 class="section-title">Sales</h3>
+        <div class="card" id="cd-sales"></div>
+        <h3 class="section-title">Payments</h3>
+        <div class="card" id="cd-payments"></div>
+      </section>
+
+      <!-- SALES LIST -->
+      <section class="view" id="view-sales">
+        <div class="card" id="sales-list"><div class="empty">Loading…</div></div>
+      </section>
+
+      <!-- SALE DETAIL -->
+      <section class="view" id="view-sale-detail">
+        <span class="backlink" onclick="goBackFromSaleDetail()">‹ Back</span>
+        <div class="card" id="sd-summary"></div>
+        <h3 class="section-title">Items</h3>
+        <div class="card" id="sd-items"></div>
+        <h3 class="section-title">Payments</h3>
+        <div class="card" id="sd-payments"></div>
+        <div id="sd-pay-form"></div>
+      </section>
+
+      <!-- NEW SALE -->
+      <section class="view" id="view-new-sale">
+        <span class="backlink" onclick="showView('view-sales')">‹ Cancel</span>
+
+        <div class="card">
+          <label>Sale date</label>
+          <input type="date" id="ns-date">
+
+          <label>Customer</label>
+          <div class="autocomplete">
+            <input type="text" id="ns-customer-input" placeholder="Search or add a customer…" autocomplete="off">
+            <div class="ac-list" id="ns-customer-ac" style="display:none;"></div>
+          </div>
+        </div>
+
+        <h3 class="section-title">Items</h3>
+        <div id="ns-lines"></div>
+        <button class="btn-outline" onclick="addSaleLine()">+ Add item</button>
+
+        <div class="card" style="margin-top:14px;">
+          <div class="total-bar"><span>Total</span><span id="ns-total">₹0.00</span></div>
+
+          <label>Amount given?</label>
+          <div class="toggle-row">
+            <div class="toggle-opt selected" id="ns-paid-yes" onclick="setAmountGiven(true)">Yes</div>
+            <div class="toggle-opt" id="ns-paid-no" onclick="setAmountGiven(false)">No — full outstanding</div>
+          </div>
+
+          <div id="ns-paid-fields">
+            <label>Amount received</label>
+            <input type="number" id="ns-amount-paid" placeholder="0.00" step="0.01">
+            <label>Payment method</label>
+            <select id="ns-method">
+              <option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Other</option>
+            </select>
+          </div>
+
+          <button class="btn-primary" style="margin-top:16px;" onclick="submitSale()" id="ns-submit">Save Sale</button>
+        </div>
+      </section>
+    </main>
+
+    <button class="fab" onclick="openNewSale()">+</button>
+
+    <nav class="bottom">
+      <div class="tab active" data-tab="dashboard" onclick="showView('view-dashboard', true)"><span class="icon">⌂</span>Dashboard</div>
+      <div class="tab" data-tab="sales" onclick="loadSalesList()"><span class="icon">▤</span>Sales</div>
+      <div class="tab" data-tab="customers" onclick="showView('view-customers', true)"><span class="icon">☺</span>Customers</div>
+    </nav>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------------
+    // STATE
+    // -------------------------------------------------------------------
+    let ns = {
+      customerId: '',
+      customerName: '',
+      lines: [], // {itemId, name, unit, category, qty, ownBottle, preview}
+      amountGiven: true
+    };
+    let items = [];
+    let saleDetailReturnView = 'view-sales';
+
+    function fmt(n) { return '₹' + Number(n || 0).toFixed(2); }
+    function todayISO() { return new Date().toISOString().slice(0, 10); }
+    function toast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast'; t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { t.remove(); }, 2600);
+    }
+
+    function showView(id, isTab) {
+      document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+      document.getElementById(id).classList.add('active');
+      if (isTab) {
+        document.querySelectorAll('nav .tab').forEach(function (t) { t.classList.remove('active'); });
+        const map = { 'view-dashboard': 'dashboard', 'view-sales': 'sales', 'view-customers': 'customers' };
+        const key = map[id];
+        if (key) document.querySelector('nav .tab[data-tab="' + key + '"]').classList.add('active');
+      }
+      if (id === 'view-dashboard') loadDashboard();
+    }
+
+    // -------------------------------------------------------------------
+    // DASHBOARD
+    // -------------------------------------------------------------------
+    function loadDashboard() {
+      google.script.run.withSuccessHandler(function (d) {
+        document.getElementById('d-today-sales').textContent = fmt(d.todaySalesTotal);
+        document.getElementById('d-today-payments').textContent = fmt(d.todayPaymentsTotal);
+        document.getElementById('d-month-sales').textContent = fmt(d.monthSalesTotal);
+        document.getElementById('d-outstanding').textContent = fmt(d.totalOutstanding);
+
+        const stockEl = document.getElementById('d-stock');
+        stockEl.innerHTML = d.stock.map(function (s) {
+          return '<div class="row-item"><span class="name">' + s.name + '</span>' +
+                 '<span class="sub">' + s.stock + ' ' + s.unit + '</span></div>';
+        }).join('') || '<div class="empty">No items yet</div>';
+
+        const recentEl = document.getElementById('d-recent');
+        recentEl.innerHTML = d.recentSales.map(function (s) {
+          return '<div class="row-item" onclick="openSaleDetail(\'' + s.SaleID + '\', \'view-dashboard\')">' +
+                 '<span><span class="name">' + s.CustomerName + '</span><br><span class="sub">' + s.Date + '</span></span>' +
+                 '<span class="right">' + fmt(s.Total) + '</span></div>';
+        }).join('') || '<div class="empty">No sales yet</div>';
+      }).withFailureHandler(handleError).getDashboardData();
+    }
+
+    // -------------------------------------------------------------------
+    // CUSTOMERS
+    // -------------------------------------------------------------------
+    let custSearchTimer;
+    document.getElementById('cust-search').addEventListener('input', function (e) {
+      clearTimeout(custSearchTimer);
+      const q = e.target.value;
+      custSearchTimer = setTimeout(function () {
+        google.script.run.withSuccessHandler(function (list) {
+          const el = document.getElementById('cust-list');
+          el.innerHTML = list.map(function (c) {
+            return '<div class="row-item" onclick="openCustomerDetail(\'' + c.id + '\')">' +
+                   '<span class="name">' + c.name + '</span><span class="sub">' + c.id + '</span></div>';
+          }).join('') || '<div class="empty">No customers found</div>';
+        }).withFailureHandler(handleError).searchCustomers(q);
+      }, 250);
+    });
+
+    function openCustomerDetail(id) {
+      google.script.run.withSuccessHandler(function (data) {
+        document.getElementById('cd-summary').innerHTML =
+          '<h2 style="margin:0 0 4px;">' + data.customer.name + '</h2>' +
+          '<div class="sub" style="color:var(--ink-soft);font-size:13px;">' + data.customer.id + '</div>' +
+          '<div class="stat-grid" style="margin-top:12px;">' +
+          '<div class="stat"><div class="label">Total Sales</div><div class="value">' + fmt(data.totalSales) + '</div></div>' +
+          '<div class="stat"><div class="label">Total Paid</div><div class="value">' + fmt(data.totalPayments) + '</div></div>' +
+          '<div class="stat warn" style="grid-column:1/3;"><div class="label">Outstanding</div><div class="value">' + fmt(data.outstanding) + '</div></div>' +
+          '</div>';
+
+        document.getElementById('cd-sales').innerHTML = data.sales.map(function (s) {
+          const badge = Number(s.Outstanding) > 0 ? '<span class="badge due">Due ' + fmt(s.Outstanding) + '</span>' : '<span class="badge ok">Paid</span>';
+          return '<div class="row-item" onclick="openSaleDetail(\'' + s.SaleID + '\', \'view-customer-detail\')">' +
+                 '<span><span class="name">' + s.Date + '</span><br><span class="sub">' + s.SaleID + '</span></span>' +
+                 '<span class="right">' + fmt(s.Total) + '<br>' + badge + '</span></div>';
+        }).join('') || '<div class="empty">No sales yet</div>';
+
+        document.getElementById('cd-payments').innerHTML = data.payments.map(function (p) {
+          return '<div class="row-item"><span><span class="name">' + p.Date + '</span><br><span class="sub">' + p.Method + ' · ' + p.SaleID + '</span></span>' +
+                 '<span class="right">' + fmt(p.Amount) + '</span></div>';
+        }).join('') || '<div class="empty">No payments yet</div>';
+
+        showView('view-customer-detail');
+      }).withFailureHandler(handleError).getCustomerSummary(id);
+    }
+
+    // -------------------------------------------------------------------
+    // SALES LIST + DETAIL
+    // -------------------------------------------------------------------
+    function loadSalesList() {
+      showView('view-sales', true);
+      google.script.run.withSuccessHandler(function (list) {
+        document.getElementById('sales-list').innerHTML = list.map(function (s) {
+          const badge = Number(s.Outstanding) > 0 ? '<span class="badge due">Due</span>' : '<span class="badge ok">Paid</span>';
+          return '<div class="row-item" onclick="openSaleDetail(\'' + s.SaleID + '\', \'view-sales\')">' +
+                 '<span><span class="name">' + s.CustomerName + '</span><br><span class="sub">' + s.Date + ' · ' + s.SaleID + '</span></span>' +
+                 '<span class="right">' + fmt(s.Total) + '<br>' + badge + '</span></div>';
+        }).join('') || '<div class="empty">No sales yet — tap + to create one</div>';
+      }).withFailureHandler(handleError).listSales(50);
+    }
+
+    function openSaleDetail(saleId, returnView) {
+      saleDetailReturnView = returnView || 'view-sales';
+      google.script.run.withSuccessHandler(function (data) {
+        const s = data.sale;
+        document.getElementById('sd-summary').innerHTML =
+          '<h2 style="margin:0 0 2px;">' + s.CustomerName + '</h2>' +
+          '<div class="sub" style="color:var(--ink-soft);font-size:13px;">' + s.SaleID + ' · ' + s.Date + '</div>' +
+          '<div class="total-bar" style="margin-top:10px;"><span>Total</span><span>' + fmt(s.Total) + '</span></div>' +
+          '<div class="row-item"><span class="sub">Paid</span><span>' + fmt(s.AmountPaid) + '</span></div>' +
+          '<div class="row-item"><span class="sub">Outstanding</span><span style="color:var(--danger);font-weight:700;">' + fmt(s.Outstanding) + '</span></div>';
+
+        document.getElementById('sd-items').innerHTML = data.items.map(function (i) {
+          return '<div class="row-item"><span><span class="name">' + i.ItemName + '</span><br>' +
+                 '<span class="sub">' + i.Qty + ' ' + i.Unit + ' × ' + fmt(i.FinalUnitPrice) +
+                 (Number(i.BottleDiscount) > 0 ? ' (own bottle -' + fmt(i.BottleDiscount) + ')' : '') + '</span></span>' +
+                 '<span class="right">' + fmt(i.LineTotal) + '</span></div>';
+        }).join('');
+
+        document.getElementById('sd-payments').innerHTML = data.payments.map(function (p) {
+          return '<div class="row-item"><span class="name">' + p.Date + '</span><span class="right">' + fmt(p.Amount) + ' · ' + p.Method + '</span></div>';
+        }).join('') || '<div class="empty">No payments recorded</div>';
+
+        const payFormEl = document.getElementById('sd-pay-form');
+        if (Number(s.Outstanding) > 0) {
+          payFormEl.innerHTML =
+            '<div class="card">' +
+            '<label>Record a payment (outstanding: ' + fmt(s.Outstanding) + ')</label>' +
+            '<input type="number" id="pay-amount" step="0.01" placeholder="Amount">' +
+            '<label>Method</label>' +
+            '<select id="pay-method"><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Other</option></select>' +
+            '<button class="btn-gold" style="margin-top:12px;" onclick="submitPayment(\'' + s.SaleID + '\')">Record Payment</button>' +
+            '</div>';
+        } else {
+          payFormEl.innerHTML = '';
+        }
+
+        showView('view-sale-detail');
+      }).withFailureHandler(handleError).getSaleDetail(saleId);
+    }
+
+    function goBackFromSaleDetail() { showView(saleDetailReturnView, true); }
+
+    function submitPayment(saleId) {
+      const amount = document.getElementById('pay-amount').value;
+      const method = document.getElementById('pay-method').value;
+      if (!amount || Number(amount) <= 0) { toast('Enter a valid amount'); return; }
+      google.script.run.withSuccessHandler(function () {
+        toast('Payment recorded');
+        openSaleDetail(saleId, saleDetailReturnView);
+      }).withFailureHandler(handleError).recordPayment(saleId, amount, method, '');
+    }
+
+    // -------------------------------------------------------------------
+    // NEW SALE
+    // -------------------------------------------------------------------
+    function openNewSale() {
+      ns = { customerId: '', customerName: '', lines: [], amountGiven: true };
+      document.getElementById('ns-date').value = todayISO();
+      document.getElementById('ns-customer-input').value = '';
+      document.getElementById('ns-lines').innerHTML = '';
+      setAmountGiven(true);
+      document.getElementById('ns-amount-paid').value = '';
+      if (!items.length) {
+        google.script.run.withSuccessHandler(function (list) { items = list; addSaleLine(); }).withFailureHandler(handleError).getItemsForSale();
+      } else {
+        addSaleLine();
+      }
+      showView('view-new-sale');
+    }
+
+    // customer autocomplete
+    let custTimer;
+    const custInput = document.getElementById('ns-customer-input');
+    custInput.addEventListener('input', function () {
+      ns.customerId = ''; ns.customerName = custInput.value;
+      clearTimeout(custTimer);
+      const q = custInput.value;
+      custTimer = setTimeout(function () {
+        google.script.run.withSuccessHandler(function (list) {
+          const el = document.getElementById('ns-customer-ac');
+          let html = list.map(function (c) {
+            return '<div class="ac-item" onclick="pickCustomer(\'' + c.id + '\', \'' + c.name.replace(/'/g, "\\'") + '\')">' + c.name + '</div>';
+          }).join('');
+          if (q.trim()) {
+            html += '<div class="ac-item create" onclick="pickNewCustomer()">+ Add "' + q + '" as new customer</div>';
+          }
+          el.innerHTML = html;
+          el.style.display = q.trim() ? 'block' : 'none';
+        }).withFailureHandler(handleError).searchCustomers(q);
+      }, 250);
+    });
+    function pickCustomer(id, name) {
+      ns.customerId = id; ns.customerName = name;
+      custInput.value = name;
+      document.getElementById('ns-customer-ac').style.display = 'none';
+    }
+    function pickNewCustomer() {
+      ns.customerId = '';
+      document.getElementById('ns-customer-ac').style.display = 'none';
+    }
+
+    // sale lines
+    function addSaleLine() {
+      const line = { key: Date.now() + Math.random(), itemId: items.length ? items[0].id : '', qty: '', ownBottle: false, preview: null };
+      ns.lines.push(line);
+      renderSaleLines();
+    }
+    function removeSaleLine(key) {
+      ns.lines = ns.lines.filter(function (l) { return l.key !== key; });
+      renderSaleLines();
+    }
+    function renderSaleLines() {
+      const el = document.getElementById('ns-lines');
+      el.innerHTML = ns.lines.map(function (l) {
+        const item = items.filter(function (i) { return i.id === l.itemId; })[0];
+        const isOil = item && item.category === 'Oil';
+        return '<div class="sale-line">' +
+          '<div class="line-head">' +
+          '<select onchange="lineSetItem(' + '\'' + l.key + '\'' + ', this.value)" style="width:60%;">' +
+          items.map(function (i) { return '<option value="' + i.id + '"' + (i.id === l.itemId ? ' selected' : '') + '>' + i.name + '</option>'; }).join('') +
+          '</select>' +
+          '<span class="remove" onclick="removeSaleLine(\'' + l.key + '\')">Remove</span>' +
+          '</div>' +
+          '<label style="margin-bottom:0;">Qty (' + (item ? item.unit : '') + ')</label>' +
+          '<input type="number" step="0.01" value="' + l.qty + '" oninput="lineSetQty(\'' + l.key + '\', this.value)">' +
+          (isOil ? '<div class="bottle-check"><input type="checkbox" id="bottle-' + l.key + '" ' + (l.ownBottle ? 'checked' : '') +
+            ' onchange="lineSetBottle(\'' + l.key + '\', this.checked)"><label style="margin:0;font-weight:500;" for="bottle-' + l.key + '">Customer brought own bottle</label></div>' : '') +
+          '<div class="price-preview' + (l.preview && l.preview.currentStock - (Number(l.qty) || 0) < 0 ? ' neg' : '') + '" id="preview-' + l.key + '">' +
+          (l.preview ? previewText(l) : 'Pick quantity to see price') + '</div>' +
+          '</div>';
+      }).join('');
+      recalcTotal();
+    }
+    function previewText(l) {
+      const p = l.preview;
+      const qty = Number(l.qty) || 0;
+      const resulting = round2(p.currentStock - qty);
+      let txt = fmt(p.finalUnitPrice) + '/' + p.unit + (p.bottleDiscount > 0 ? ' (₹' + p.bottleDiscount + ' bottle discount applied)' : '') +
+        ' · Stock after: ' + resulting + ' ' + p.unit;
+      if (resulting < 0) txt += ' ⚠ goes negative';
+      return txt;
+    }
+    function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+    function lineSetItem(key, itemId) {
+      ns.lines.forEach(function (l) { if (l.key == key) { l.itemId = itemId; l.preview = null; } });
+      renderSaleLines();
+      refreshLinePreview(key);
+    }
+    function lineSetQty(key, qty) {
+      ns.lines.forEach(function (l) { if (l.key == key) l.qty = qty; });
+      refreshLinePreview(key);
+    }
+    function lineSetBottle(key, checked) {
+      ns.lines.forEach(function (l) { if (l.key == key) l.ownBottle = checked; });
+      refreshLinePreview(key);
+    }
+    function refreshLinePreview(key) {
+      const line = ns.lines.filter(function (l) { return l.key == key; })[0];
+      if (!line || !line.itemId) return;
+      const date = document.getElementById('ns-date').value || todayISO();
+      google.script.run.withSuccessHandler(function (preview) {
+        const current = ns.lines.filter(function (l) { return l.key == key; })[0];
+        if (current) current.preview = preview;
+        const previewEl = document.getElementById('preview-' + key);
+        if (previewEl && current) {
+          previewEl.textContent = previewText(current);
+          previewEl.className = 'price-preview' + (preview.currentStock - (Number(current.qty) || 0) < 0 ? ' neg' : '');
+        }
+        recalcTotal();
+      }).withFailureHandler(handleError).getLinePreview(line.itemId, date, !!line.ownBottle);
+    }
+    function recalcTotal() {
+      const total = ns.lines.reduce(function (sum, l) {
+        if (!l.preview || !l.qty) return sum;
+        return sum + (Number(l.qty) * l.preview.finalUnitPrice);
+      }, 0);
+      document.getElementById('ns-total').textContent = fmt(total);
+      if (ns.amountGiven && !document.getElementById('ns-amount-paid').dataset.touched) {
+        document.getElementById('ns-amount-paid').value = total.toFixed(2);
+      }
+    }
+    document.getElementById('ns-amount-paid').addEventListener('input', function () { this.dataset.touched = '1'; });
+
+    function setAmountGiven(val) {
+      ns.amountGiven = val;
+      document.getElementById('ns-paid-yes').classList.toggle('selected', val);
+      document.getElementById('ns-paid-no').classList.toggle('selected', !val);
+      document.getElementById('ns-paid-fields').style.display = val ? 'block' : 'none';
+      if (!val) document.getElementById('ns-amount-paid').value = 0;
+    }
+
+    function submitSale() {
+      if (!ns.customerId && !ns.customerName.trim()) { toast('Enter a customer name'); return; }
+      const validLines = ns.lines.filter(function (l) { return l.itemId && Number(l.qty) > 0; });
+      if (!validLines.length) { toast('Add at least one item with a quantity'); return; }
+
+      const btn = document.getElementById('ns-submit');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+      const payload = {
+        date: document.getElementById('ns-date').value || todayISO(),
+        customerId: ns.customerId,
+        newCustomerName: ns.customerId ? '' : ns.customerName.trim(),
+        items: validLines.map(function (l) { return { itemId: l.itemId, qty: l.qty, ownBottle: !!l.ownBottle }; }),
+        amountGiven: ns.amountGiven,
+        amountPaid: ns.amountGiven ? (document.getElementById('ns-amount-paid').value || 0) : 0,
+        paymentMethod: document.getElementById('ns-method').value,
+        notes: ''
+      };
+
+      google.script.run.withSuccessHandler(function (result) {
+        btn.disabled = false; btn.innerHTML = 'Save Sale';
+        toast('Sale ' + result.saleId + ' saved');
+        if (result.negativeStockWarnings && result.negativeStockWarnings.length) {
+          toast('⚠ ' + result.negativeStockWarnings.join('; '));
+        }
+        openSaleDetail(result.saleId, 'view-sales');
+      }).withFailureHandler(function (err) {
+        btn.disabled = false; btn.innerHTML = 'Save Sale';
+        handleError(err);
+      }).createSale(payload);
+    }
+
+    function handleError(err) {
+      toast('Error: ' + (err && err.message ? err.message : err));
+    }
+
+    // -------------------------------------------------------------------
+    // INIT
+    // -------------------------------------------------------------------
+    loadDashboard();
+  </script>
+</body>
+</html>
