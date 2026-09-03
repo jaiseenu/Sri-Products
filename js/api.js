@@ -11,7 +11,7 @@ const Api = (() => {
   // Set this to your deployed Apps Script /exec URL.
   const API_BASE_URL = window.SRI_CONFIG && window.SRI_CONFIG.API_BASE_URL
     ? window.SRI_CONFIG.API_BASE_URL
-    : 'https://script.google.com/macros/s/AKfycbzx3kPV16IWZ4Iu2VjrIw1N3lUufzHVFv6OVpI8SIxvew8cA-LRfKZ7hA7c5Rxp5KiC/exec';
+    : 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
 
   function getToken() {
     return localStorage.getItem('sri_token') || null;
