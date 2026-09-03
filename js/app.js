@@ -17,6 +17,11 @@ const App = (() => {
     const v = Number(n || 0);
     return '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  function summarizeItems(items) {
+    if (!items || !items.length) return 'No items';
+    const text = items.map(i => `${i.itemName} ${i.quantity}${i.unit}`).join(', ');
+    return text.length > 72 ? esc(text.slice(0, 69)) + '…' : esc(text);
+  }
   function fmtDate(d) {
     if (!d) return '—';
     const dt = new Date(d);
@@ -137,7 +142,8 @@ const App = (() => {
         <div class="stat-tile"><div class="stat-label">Today's sales</div><div class="stat-value">${money(d.todaySalesTotal)}</div></div>
         <div class="stat-tile"><div class="stat-label">Today's payments</div><div class="stat-value">${money(d.todayPaymentsTotal)}</div></div>
         <div class="stat-tile"><div class="stat-label">This month</div><div class="stat-value">${money(d.monthSalesTotal)}</div></div>
-        <div class="stat-tile"><div class="stat-label">Outstanding</div><div class="stat-value">${money(d.totalOutstanding)}</div></div>
+        <div class="stat-tile"><div class="stat-label">Pending</div><div class="stat-value">${money(d.pendingReceivable)}</div></div>
+        ${d.creditsOwed > 0 ? `<div class="stat-tile wide"><div class="stat-label">Credit owed to customers (overpayments)</div><div class="stat-value">${money(d.creditsOwed)}</div></div>` : ''}
       </div>
       <div class="section-label">Quick actions</div>
       <div class="quick-actions">
@@ -147,10 +153,11 @@ const App = (() => {
         <button class="quick-action" data-go="#/production/new"><span class="qa-icon">&#9881;</span>New production</button>
       </div>
       ${stockLow.length ? `<div class="section-label">Stock at zero or below</div><div class="panel">${stockLow.map(s => `<div class="list-row"><div class="row-title">${esc(s.name)}</div><div class="amount red">${s.currentStock} ${esc(s.unit)}</div></div>`).join('')}</div>` : ''}
+      ${d.productSummary && d.productSummary.length ? `<div class="section-label">Sold this month</div><div class="panel">${d.productSummary.map(p => `<div class="list-row"><div><div class="row-title">${esc(p.name)}</div><div class="row-sub">${p.type === 'FinishedOil' ? 'Oil' : 'Cake by-product'}</div></div><div class="amount">${p.quantitySold} ${esc(p.unit)}</div></div>`).join('')}</div>` : ''}
       <div class="section-label">Recent sales</div>
       <div class="panel">${d.recentSales.length ? d.recentSales.map(s => `
         <div class="list-row" data-go="#/sales/${esc(s.SaleId)}">
-          <div><div class="row-title">${esc(s.SaleId)} ${s.Status === 'Voided' ? statusBadge('Voided') : ''}</div><div class="row-sub">${fmtDate(s.SaleDate)}</div></div>
+          <div><div class="row-title">${esc(s.customerName)} ${s.Status === 'Voided' ? statusBadge('Voided') : ''}</div><div class="row-sub">${fmtDate(s.SaleDate)}</div><div class="row-sub">${summarizeItems(s.items)}</div></div>
           <div class="row-right"><div class="amount">${money(s.GrandTotal)}</div>${s.Status !== 'Voided' && Number(s.Outstanding) > 0 ? `<div class="row-sub" style="color:var(--red-600)">${money(s.Outstanding)} due</div>` : ''}</div>
         </div>`).join('') : '<div class="empty-state">No sales yet.</div>'}</div>
       <div class="section-label">Recent payments</div>
@@ -234,8 +241,8 @@ const App = (() => {
       <div class="section-label">Sales</div>
       <div class="panel">${ledger.sales.length ? ledger.sales.map(s => `
         <div class="list-row" data-go="#/sales/${esc(s.SaleId)}">
-          <div><div class="row-title">${esc(s.SaleId)} ${s.Status === 'Voided' ? statusBadge('Voided') : ''}</div><div class="row-sub">${fmtDate(s.SaleDate)}</div></div>
-          <div class="row-right"><div class="amount">${money(s.GrandTotal)}</div>${s.Status !== 'Voided' && Number(s.Outstanding) > 0 ? `<div class="row-sub" style="color:var(--red-600)">${money(s.Outstanding)} due</div>` : ''}</div>
+          <div><div class="row-title">${fmtDate(s.SaleDate)} ${s.Status === 'Voided' ? statusBadge('Voided') : ''}</div></div>
+          <div class="row-right"><div class="amount">${money(s.GrandTotal)}</div>${s.Status !== 'Voided' && Number(s.Outstanding) > 0 ? `<div class="row-sub" style="color:var(--red-600)">${money(s.Outstanding)} due</div>` : (s.Status !== 'Voided' ? '<div class="row-sub" style="color:var(--green-700)">Paid</div>' : '')}</div>
         </div>`).join('') : '<div class="empty-state">No sales yet.</div>'}</div>
       <div class="section-label">Payments</div>
       <div class="panel">${ledger.payments.length ? ledger.payments.map(p => `<div class="list-row"><div><div class="row-title">${esc(p.PaymentId)}</div><div class="row-sub">${fmtDate(p.PaymentDate)} · ${esc(p.Method)}</div></div><div class="amount green">${money(p.Amount)}</div></div>`).join('') : '<div class="empty-state">No payments yet.</div>'}</div>
@@ -247,27 +254,62 @@ const App = (() => {
 
   function customerNameField(id, prefillName) {
     return `
-      <div class="field">
+      <div class="field autocomplete-wrap">
         <label>Customer</label>
-        <input id="${id}" list="${id}List" placeholder="Type a customer name…" value="${esc(prefillName || '')}" autocomplete="off">
-        <datalist id="${id}List"></datalist>
+        <input id="${id}" placeholder="Type a customer name…" value="${esc(prefillName || '')}" autocomplete="off">
+        <div class="autocomplete-panel" id="${id}Panel"></div>
         <div class="hint" id="${id}Hint"></div>
       </div>`;
   }
 
-  async function wireCustomerNameField(id, customers) {
+  /**
+   * Custom tappable suggestion list (not native <datalist> — iOS Safari
+   * barely renders datalist dropdowns at all). Returns a controller so
+   * the caller can read what was actually selected/typed at submit time.
+   * opts.allowFreeText: true for Sale/Quotation (typed-but-unmatched
+   * name creates a new customer on save); false for Payment (must
+   * resolve to an existing customer, nothing gets created).
+   */
+  function attachAutocomplete(id, customers, opts) {
+    opts = opts || {};
     const input = document.getElementById(id);
-    const list = document.getElementById(id + 'List');
+    const panel = document.getElementById(id + 'Panel');
     const hint = document.getElementById(id + 'Hint');
-    list.innerHTML = customers.map(c => `<option value="${esc(c.Name)}">`).join('');
-    function checkMatch() {
-      const val = input.value.trim().toLowerCase();
-      if (!val) { hint.textContent = ''; return; }
-      const match = customers.find(c => c.Name.trim().toLowerCase() === val);
-      hint.textContent = match ? '' : 'This will be added as a new customer.';
+    let selectedId = null;
+
+    function findExact(val) {
+      const v = val.trim().toLowerCase();
+      return customers.find(c => c.Name.trim().toLowerCase() === v);
     }
-    input.oninput = checkMatch;
-    checkMatch();
+    function renderList(val) {
+      const q = val.trim().toLowerCase();
+      const matches = (q ? customers.filter(c => c.Name.toLowerCase().indexOf(q) !== -1) : customers).slice(0, 8);
+      panel.innerHTML = matches.length
+        ? matches.map(c => `<div class="autocomplete-item" data-id="${esc(c.CustomerId)}" data-name="${esc(c.Name)}">${esc(c.Name)}</div>`).join('')
+        : '<div class="autocomplete-empty">No matching customers</div>';
+      panel.classList.add('open');
+      panel.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.onpointerdown = (ev) => { ev.preventDefault(); select(el.dataset.id, el.dataset.name); };
+      });
+    }
+    function select(id2, name) {
+      selectedId = id2; input.value = name; panel.classList.remove('open'); updateHint();
+      if (opts.onSelect) opts.onSelect(id2, name);
+    }
+    function updateHint() {
+      if (!hint) return;
+      const val = input.value.trim();
+      if (!val) { hint.textContent = ''; return; }
+      if (selectedId) { hint.textContent = ''; return; }
+      const exact = findExact(val);
+      if (exact) { selectedId = exact.CustomerId; hint.textContent = ''; if (opts.onSelect) opts.onSelect(exact.CustomerId, exact.Name); return; }
+      hint.textContent = opts.allowFreeText ? 'This will be added as a new customer.' : 'No matching customer — select one from the list.';
+    }
+    input.oninput = () => { selectedId = null; renderList(input.value); updateHint(); };
+    input.onfocus = () => renderList(input.value);
+    input.onblur = () => { setTimeout(() => panel.classList.remove('open'), 150); updateHint(); };
+    if (opts.prefillName) { const exact = findExact(opts.prefillName); if (exact) selectedId = exact.CustomerId; }
+    return { getSelectedId: () => selectedId, getSelectedName: () => input.value.trim(), isMatched: () => !!selectedId };
   }
 
   // ---------- LINE ITEM BUILDER (shared by Sale / Quotation) ----------
@@ -367,7 +409,7 @@ const App = (() => {
       <button class="btn btn-primary" id="saveSale" style="margin-top:8px;">${mode === 'edit' ? 'Save changes' : 'Save sale'}</button>
     `;
 
-    await wireCustomerNameField('saleCustomer', customers);
+    attachAutocomplete('saleCustomer', customers, { allowFreeText: true, prefillName: custName });
 
     const lineHost = document.getElementById('lineItems');
     const totalsEl = document.getElementById('totals');
@@ -411,19 +453,60 @@ const App = (() => {
 
   // ---------- SALES LIST / DETAIL ----------
 
+  function saleBucket(s) {
+    if (s.Status === 'Voided') return 'voided';
+    const outstanding = Number(s.Outstanding || 0);
+    if (outstanding <= 0) return 'paid';
+    if (Number(s.AmountReceived || 0) <= 0) return 'unpaid';
+    return 'partial';
+  }
+
   async function screenSales() {
-    shell('Sales', `<div class="panel" id="salesList"><div class="empty-state">Loading…</div></div>`, { back: false, activeTab: 'sales', actionLabel: '+ New', onAction: () => navigate('#/sales/new') });
-    try {
-      const sales = await Api.call('listSales', {});
-      const customers = await ensureCustomers('');
-      const nameOf = id => { const c = customers.find(c => c.CustomerId === id); return c ? c.Name : id; };
-      document.getElementById('salesList').innerHTML = sales.length ? sales.map(s => `
+    shell('Sales', `
+      <div class="field"><input id="salesSearch" placeholder="Search by customer…"></div>
+      <div class="filter-row" id="salesFilters">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="unpaid">Unpaid</button>
+        <button class="chip" data-filter="partial">Partially paid</button>
+        <button class="chip" data-filter="paid">Paid</button>
+      </div>
+      <div class="panel" id="salesList"><div class="empty-state">Loading…</div></div>
+    `, { back: false, activeTab: 'sales', actionLabel: '+ New', onAction: () => navigate('#/sales/new') });
+
+    let allSales = [];
+    let activeFilter = 'all';
+
+    function render() {
+      const q = document.getElementById('salesSearch').value.trim().toLowerCase();
+      const filtered = allSales.filter(s => {
+        if (activeFilter !== 'all' && saleBucket(s) !== activeFilter) return false;
+        if (q && s.customerName.toLowerCase().indexOf(q) === -1) return false;
+        return true;
+      });
+      document.getElementById('salesList').innerHTML = filtered.length ? filtered.map(s => `
         <div class="list-row" data-go="#/sales/${esc(s.SaleId)}">
-          <div><div class="row-title">${esc(nameOf(s.CustomerId))} ${s.Status === 'Voided' ? statusBadge('Voided') : ''}</div><div class="row-sub">${esc(s.SaleId)} · ${fmtDate(s.SaleDate)}</div></div>
+          <div>
+            <div class="row-title">${esc(s.customerName)} ${s.Status === 'Voided' ? statusBadge('Voided') : ''}</div>
+            <div class="row-sub">${fmtDate(s.SaleDate)}</div>
+            <div class="row-sub">${summarizeItems(s.items)}</div>
+          </div>
           <div class="row-right"><div class="amount">${money(s.GrandTotal)}</div>${s.Status === 'Voided' ? '' : (Number(s.Outstanding) > 0 ? `<div class="row-sub" style="color:var(--red-600)">${money(s.Outstanding)} due</div>` : '<div class="row-sub" style="color:var(--green-700)">Paid</div>')}</div>
-        </div>`).join('') : '<div class="empty-state"><div class="empty-title">No sales yet</div><p>Tap "+ New" to record your first sale.</p></div>';
+        </div>`).join('') : '<div class="empty-state"><div class="empty-title">No matching sales</div></div>';
       bindGoAttrs();
-    } catch (e) { document.getElementById('salesList').innerHTML = errorState(e.message); }
+    }
+
+    try {
+      allSales = await Api.call('listSales', {});
+      render();
+    } catch (e) { document.getElementById('salesList').innerHTML = errorState(e.message); return; }
+
+    document.getElementById('salesSearch').oninput = render;
+    document.querySelectorAll('#salesFilters .chip').forEach(chip => chip.onclick = () => {
+      document.querySelectorAll('#salesFilters .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.dataset.filter;
+      render();
+    });
   }
 
   function screenNewSale(prefillCustomerId) { return renderSaleForm('new', prefillCustomerId); }
@@ -457,6 +540,7 @@ const App = (() => {
         <button class="btn btn-secondary" id="printBtn">Print / Share PDF</button>
         ${!isVoided && Number(s.Outstanding) > 0 ? `<button class="btn btn-gold" data-go="#/customers/${esc(s.CustomerId)}/pay?sale=${esc(s.SaleId)}">Record payment</button>` : ''}
       </div>
+      ${!isVoided && Number(s.Outstanding) > 0 ? `<div class="btn-row no-print"><button class="btn btn-secondary" id="markPaidBtn">Mark as paid (${money(s.Outstanding)})</button></div>` : ''}
       ${!isVoided ? `<div class="btn-row no-print">
         <button class="btn btn-secondary" data-go="#/sales/${esc(s.SaleId)}/edit">Edit</button>
         <button class="btn btn-danger" id="voidBtn">Void sale</button>
@@ -464,6 +548,12 @@ const App = (() => {
     `;
     bindGoAttrs();
     document.getElementById('printBtn').onclick = () => window.print();
+    const markPaidBtn = document.getElementById('markPaidBtn');
+    if (markPaidBtn) markPaidBtn.onclick = async () => {
+      if (!confirmAction('Mark this sale as fully paid? This records a payment of ' + money(s.Outstanding) + '.')) return;
+      try { await Api.call('markSaleAsPaid', { saleId, method: 'Cash' }); toast('Sale marked as paid.'); screenSaleDetail(saleId); }
+      catch (err) { toast(err.message); }
+    };
     const voidBtn = document.getElementById('voidBtn');
     if (voidBtn) voidBtn.onclick = async () => {
       const reason = promptText('Reason for voiding this sale? (this reverses its stock impact)');
@@ -479,23 +569,97 @@ const App = (() => {
   async function screenRecordPayment(prefillCustomerId, prefillSaleId) {
     shell('Record payment', `<div class="empty-state">Loading…</div>`, { activeTab: 'customers' });
     const customers = await ensureCustomers('');
+    let prefillName = '';
+    if (prefillCustomerId) { const c = customers.find(c => c.CustomerId === prefillCustomerId); if (c) prefillName = c.Name; }
+
     document.querySelector('.screen').innerHTML = `
-      <div class="field"><label>Customer</label><select id="payCustomer"><option value="">Select customer…</option>${customers.map(c => `<option value="${esc(c.CustomerId)}" ${c.CustomerId === prefillCustomerId ? 'selected' : ''}>${esc(c.Name)}</option>`).join('')}</select></div>
+      ${customerNameField('payCustomer', prefillName)}
       <div class="field"><label>Amount</label><input type="number" min="0" step="0.01" id="payAmount"></div>
       <div class="field"><label>Date</label><input type="date" id="payDate" value="${todayInputValue()}"></div>
       <div class="field"><label>Method</label><select id="payMethod"><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option></select></div>
-      <div class="field"><label>Reference sale (optional)</label><input id="payRef" value="${esc(prefillSaleId || '')}" placeholder="e.g. SALE-000123"></div>
       <div class="field"><label>Notes (optional)</label><textarea id="payNotes" rows="2"></textarea></div>
-      <button class="btn btn-primary" id="savePayment">Save payment</button>
+      <div id="allocSection"></div>
+      <button class="btn btn-primary" id="savePayment" style="margin-top:8px;">Save payment</button>
     `;
+
+    let outstandingSales = [];
+    let manuallyEdited = false;
+
+    async function loadOutstanding(customerId) {
+      const allocHost = document.getElementById('allocSection');
+      allocHost.innerHTML = `<p class="muted">Loading outstanding sales…</p>`;
+      manuallyEdited = false;
+      try {
+        const ledger = await Api.call('getCustomerLedger', { customerId });
+        outstandingSales = ledger.sales
+          .filter(s => s.Status !== 'Voided' && Number(s.Outstanding) > 0)
+          .sort((a, b) => new Date(a.SaleDate) - new Date(b.SaleDate)); // oldest first, for the default split
+        if (!outstandingSales.length) { allocHost.innerHTML = ''; return; }
+        allocHost.innerHTML = `
+          <div class="section-label">Apply to outstanding sales</div>
+          <div class="panel">${outstandingSales.map(s => `
+            <div class="alloc-row" data-alloc-row="${esc(s.SaleId)}">
+              <div><div class="row-title">${fmtDate(s.SaleDate)}${s.SaleId === prefillSaleId ? ' (this sale)' : ''}</div><div class="row-sub">Total ${money(s.GrandTotal)} · Due ${money(s.Outstanding)}</div></div>
+              <input type="number" min="0" step="0.01" class="alloc-input" data-sale="${esc(s.SaleId)}" data-due="${s.Outstanding}" value="0">
+            </div>`).join('')}</div>
+          <p class="muted" id="allocRemain" style="margin-top:8px;"></p>
+        `;
+        allocHost.querySelectorAll('.alloc-input').forEach(inp => inp.oninput = () => { manuallyEdited = true; updateRemainLabel(); });
+        if (prefillSaleId && !document.getElementById('payAmount').value) {
+          const target = outstandingSales.find(s => s.SaleId === prefillSaleId);
+          if (target) document.getElementById('payAmount').value = target.Outstanding;
+        }
+        applySplit();
+      } catch (err) { allocHost.innerHTML = ''; toast(err.message); }
+    }
+
+    function applySplit() {
+      if (manuallyEdited) { updateRemainLabel(); return; }
+      let remaining = round2(Number(document.getElementById('payAmount').value || 0));
+      outstandingSales.forEach(s => {
+        const input = document.querySelector(`.alloc-input[data-sale="${CSS.escape(s.SaleId)}"]`);
+        if (!input) return;
+        const due = Number(s.Outstanding);
+        const take = remaining > 0 ? Math.min(due, remaining) : 0;
+        input.value = take > 0 ? take : '';
+        remaining = round2(remaining - take);
+      });
+      updateRemainLabel();
+    }
+
+    function updateRemainLabel() {
+      const el = document.getElementById('allocRemain');
+      if (!el) return;
+      const total = round2(Number(document.getElementById('payAmount').value || 0));
+      const allocated = round2(Array.from(document.querySelectorAll('.alloc-input')).reduce((s, i) => s + Number(i.value || 0), 0));
+      const remain = round2(total - allocated);
+      if (remain < -0.004) { el.textContent = `Over-allocated by ${money(-remain)} — reduce the amounts above.`; el.style.color = 'var(--red-600)'; }
+      else if (remain > 0.004) { el.textContent = `${money(remain)} left unallocated — recorded as an advance/credit.`; el.style.color = ''; }
+      else { el.textContent = 'Fully allocated.'; el.style.color = 'var(--green-700)'; }
+    }
+    function round2(n) { return Math.round((Number(n) + Number.EPSILON) * 100) / 100; }
+
+    const autocomplete = attachAutocomplete('payCustomer', customers, {
+      allowFreeText: false,
+      prefillName: prefillName,
+      onSelect: (id) => loadOutstanding(id)
+    });
+    if (prefillCustomerId) loadOutstanding(prefillCustomerId);
+    document.getElementById('payAmount').oninput = applySplit;
+
     document.getElementById('savePayment').onclick = async (e) => {
-      const customerId = document.getElementById('payCustomer').value;
+      const customerId = autocomplete.getSelectedId();
+      if (!customerId) { toast('Select an existing customer from the suggestions.'); return; }
       const amount = Number(document.getElementById('payAmount').value || 0);
-      if (!customerId) { toast('Select a customer.'); return; }
       if (!(amount > 0)) { toast('Enter an amount greater than zero.'); return; }
+      const allocations = Array.from(document.querySelectorAll('.alloc-input'))
+        .map(i => ({ saleId: i.dataset.sale, amount: Number(i.value || 0) }))
+        .filter(a => a.amount > 0);
+      const allocatedTotal = round2(allocations.reduce((s, a) => s + a.amount, 0));
+      if (allocatedTotal - amount > 0.01) { toast('The amounts applied to sales add up to more than the payment amount.'); return; }
       e.target.disabled = true; e.target.textContent = 'Saving…';
       try {
-        await Api.call('recordPayment', { payload: { customerId, amount, paymentDate: document.getElementById('payDate').value, method: document.getElementById('payMethod').value, saleId: document.getElementById('payRef').value.trim(), notes: document.getElementById('payNotes').value.trim() } });
+        await Api.call('recordPayment', { payload: { customerId, amount, paymentDate: document.getElementById('payDate').value, method: document.getElementById('payMethod').value, notes: document.getElementById('payNotes').value.trim(), allocations } });
         toast('Payment recorded.');
         navigate('#/customers/' + customerId);
       } catch (err) { toast(err.message); e.target.disabled = false; e.target.textContent = 'Save payment'; }
@@ -539,7 +703,7 @@ const App = (() => {
       <div class="totals-panel" id="qTotals"></div>
       <button class="btn btn-primary" id="saveQuote" style="margin-top:14px;">${mode === 'edit' ? 'Save changes' : 'Save quotation'}</button>
     `;
-    await wireCustomerNameField('qCustomer', customers);
+    attachAutocomplete('qCustomer', customers, { allowFreeText: true, prefillName: custName });
 
     const lineHost = document.getElementById('qLineItems');
     const totalsEl = document.getElementById('qTotals');
