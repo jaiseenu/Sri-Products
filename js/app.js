@@ -189,7 +189,15 @@ const App = (() => {
       <div class="panel"><div class="list-row" id="logoutRow"><div class="row-title" style="color:var(--red-600)">Log out</div></div></div>
     `, { back: false, activeTab: 'more' });
     bindGoAttrs();
-    document.getElementById('logoutRow').onclick = () => { Api.setToken(null); Api.setUser(null); navigate('#/login'); };
+    document.getElementById('logoutRow').onclick = async () => {
+      // Best-effort: invalidate the session server-side too, so the
+      // token can't still be used if this device is shared/borrowed.
+      // Clear local state regardless, even if the request fails
+      // (e.g. offline) — the user should never get stuck unable to
+      // log out just because the network is down.
+      try { await Api.call('logout'); } catch (e) { /* ignore */ }
+      Api.setToken(null); Api.setUser(null); navigate('#/login');
+    };
   }
 
   // ---------- CUSTOMERS ----------
