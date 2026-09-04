@@ -32,6 +32,13 @@
 
 * { box-sizing: border-box; }
 
+/* Zoom is no longer disabled via viewport meta (accessibility), so
+   interactive controls opt out of double-tap-to-zoom individually
+   instead — pinch-zoom on text/content still works everywhere. */
+button, .list-row, .tab-btn, .chip, .quick-action, input, select {
+  touch-action: manipulation;
+}
+
 html, body {
   margin: 0;
   padding: 0;
